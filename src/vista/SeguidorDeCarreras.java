@@ -5,6 +5,13 @@ import java.awt.Component;
 import java.awt.EventQueue;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.util.Date;
+import java.util.List;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultComboBoxModel;
@@ -14,20 +21,28 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 
 import controller.SeguidorController;
 import modelo.Carrera;
 import modelo.DataDummy;
 import modelo.Materia;
+import modelo.Nota;
 import modelo.Ubicacion;
 import viewmodel.SeguidorDeCarreraViewModel;
 import javax.swing.ListSelectionModel;
@@ -36,6 +51,13 @@ public class SeguidorDeCarreras extends JFrame {
 
 	private JPanel contentPane;
 	private SeguidorController controller;
+	private JTable tablaNotas;
+	private NotaTableModel notaTableModel;
+	private JLabel lblNombreDeLaMateira;
+	private JCheckBox checkBoxAprobo;
+	private JTextField textFieldAnio;
+	private JTextField textFieldProfesor;
+	private JComboBox<Ubicacion> comboBoxUbicacion;
 
 	/**
 	 * Launch the application.
@@ -86,17 +108,63 @@ public class SeguidorDeCarreras extends JFrame {
 		listaDeMaterias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		listaDeMaterias.setCellRenderer(new MateriaCell());
 		listaDeMaterias.setModel(controller.getMaterias());
-		listaDeMaterias.setSelectedIndex(0);
 		panelMaterias.add(listaDeMaterias);
 
 		JButton botonNuevaMateria = new JButton("Nueva materia");
+		botonNuevaMateria.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				NuevaMateria ventana = new NuevaMateria(controller.getModelo().getCarrera());
+				ventana.setVisible(true);
+				ventana.addWindowListener(new VentanaSeCierraListener() {
+
+					@Override
+					public void windowClosed(WindowEvent e) {
+						listaDeMaterias.setModel(controller.getMaterias());
+
+					}
+				});
+			}
+		});
+
 		panelMaterias.add(botonNuevaMateria);
 
+		crearDetalleDeMateria(splitPane);
+
+		listaDeMaterias.addListSelectionListener(new ListSelectionListener() {
+
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				Materia materia = listaDeMaterias.getSelectedValue();
+				if (materia != null) {
+					seSelecciono(materia);
+				}
+
+			}
+
+			private void seSelecciono(Materia materia) {
+				controller.getModelo().setMateriaSeleccionada(materia);
+				lblNombreDeLaMateira.setText(materia.getNombreMateria());
+				checkBoxAprobo.setSelected(materia.getEstaAprobada());
+				if (materia.getAnioCursada() != null) {
+					textFieldAnio.setText(materia.getAnioCursada().toString());
+				}
+				textFieldProfesor.setText(materia.getProfesor());
+				comboBoxUbicacion.setSelectedItem(materia.getUbicacion());
+				refrescarTabla();
+			}
+
+		});
+
+	}
+	
+	private void crearDetalleDeMateria(JSplitPane splitPane) {
 		JPanel panelDerecho = new JPanel();
 		splitPane.setRightComponent(panelDerecho);
 		panelDerecho.setLayout(new BoxLayout(panelDerecho, BoxLayout.Y_AXIS));
 
-		JLabel lblNombreDeLaMateira = new JLabel("Nombre de la mateira");
+		lblNombreDeLaMateira = new JLabel("Nombre de la mateira");
 		panelDerecho.add(lblNombreDeLaMateira);
 
 		JPanel panelMateria = new JPanel();
@@ -106,66 +174,152 @@ public class SeguidorDeCarreras extends JFrame {
 		JLabel lblAprobo = new JLabel("Aprobo:");
 		panelMateria.add(lblAprobo);
 
-		JCheckBox checkBoxAprobo = new JCheckBox("");
+		checkBoxAprobo = new JCheckBox("");
 		panelMateria.add(checkBoxAprobo);
+		checkBoxAprobo.addChangeListener(new ChangeListener() {
+
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				controller.getModelo().getMateriaSeleccionada().setEstaAprobada(checkBoxAprobo.isSelected());
+
+			}
+
+		});
 
 		JLabel lblAnioDeCursada = new JLabel("Año de cursada:");
 		panelMateria.add(lblAnioDeCursada);
 
-		JTextField textFieldAnio = new JTextField();
+		textFieldAnio = new JTextField();
 		panelMateria.add(textFieldAnio);
 		textFieldAnio.setColumns(10);
+		textFieldAnio.addKeyListener(new TextoCambiaListener() {
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+				controller.getModelo().getMateriaSeleccionada()
+						.setAnioCursada(Integer.valueOf(textFieldAnio.getText()));
+
+			}
+		});
 
 		JLabel lblProfesorDeCursada = new JLabel("Profesor de cursada:");
 		panelMateria.add(lblProfesorDeCursada);
 
-		JTextField textFieldProfesor = new JTextField();
+		textFieldProfesor = new JTextField();
 		panelMateria.add(textFieldProfesor);
 		textFieldProfesor.setColumns(10);
+		textFieldProfesor.addKeyListener(new TextoCambiaListener() {
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+				controller.getModelo().getMateriaSeleccionada().setProfesor(textFieldProfesor.getText());
+
+			}
+		});
 
 		JLabel lblUbicacion = new JLabel("Ubicacion");
 		panelMateria.add(lblUbicacion);
 
-		JComboBox<Ubicacion> comboBoxUbicacion = new JComboBox<Ubicacion>();
-		comboBoxUbicacion.setModel(new DefaultComboBoxModel<Ubicacion>(controller.getModelo().getUbicacionesPosibles()));
+		comboBoxUbicacion = new JComboBox<Ubicacion>();
+		comboBoxUbicacion
+				.setModel(new DefaultComboBoxModel<Ubicacion>(controller.getModelo().getUbicacionesPosibles()));
 		panelMateria.add(comboBoxUbicacion);
+		comboBoxUbicacion.addActionListener(new ActionListener() {
 
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				controller.getModelo().getMateriaSeleccionada()
+						.setUbicacion((Ubicacion) comboBoxUbicacion.getSelectedItem());
+
+			}
+
+		});
+
+		crearSeccionNotas(panelDerecho);
+	}
+
+	private void crearSeccionNotas(JPanel panel) {
 		JLabel labelNotas = new JLabel("Notas de la cursada");
-		panelDerecho.add(labelNotas);
+		panel.add(labelNotas);
 
-		JTable tablaNotas = new JTable();
-		panelDerecho.add(tablaNotas);
+		tablaNotas = new JTable();
+		panel.add(new JScrollPane(tablaNotas));
+		tablaNotas.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+			public void valueChanged(ListSelectionEvent event) {
+				Nota nota = notaTableModel.obtener(tablaNotas.convertRowIndexToModel(tablaNotas.getSelectedRow()));
+				controller.getModelo().setNotaSeleccionada(nota);
+			}
+		});
 
+		crearBotonesNota(panel);
+
+		if (controller.getModelo().getMateriaSeleccionada() != null) {
+			notaTableModel = new NotaTableModel(controller.getModelo().getMateriaSeleccionada().getNotas());
+			tablaNotas.setModel(notaTableModel);
+		}
+	}
+
+	private void crearBotonesNota(JPanel panel) {
 		JPanel panelBotones = new JPanel();
-		panelDerecho.add(panelBotones);
+		panel.add(panelBotones);
 
 		JButton botonEditar = new JButton("Editar");
 		panelBotones.add(botonEditar);
-
-		JButton botonQuitar = new JButton("+");
-		panelBotones.add(botonQuitar);
-
-		JButton botonAgregar = new JButton("-");
-		panelBotones.add(botonAgregar);
-		
-		
-		listaDeMaterias.addListSelectionListener(new ListSelectionListener() {
+		botonEditar.addActionListener(new ActionListener() {
 
 			@Override
-			public void valueChanged(ListSelectionEvent e) {
-				seSelecciono(listaDeMaterias.getSelectedValue());
-				
-			}
+			public void actionPerformed(ActionEvent e) {
+				Nota nota = controller.getModelo().getNotaSeleccionada();
+				if (nota != null) {
+					EditarNota editarDialog = new EditarNota(nota);
+					editarDialog.setVisible(true);
+					editarDialog.addWindowListener(new VentanaSeCierraListener() {
 
-			private void seSelecciono(Materia materia) {
-				lblNombreDeLaMateira.setText(materia.getNombreMateria());
-				checkBoxAprobo.setSelected(materia.getEstaAprobada());
-				textFieldAnio.setText(materia.getAnioCursada().toString());
-				textFieldProfesor.setText(materia.getProfesor());
-				comboBoxUbicacion.setSelectedItem(materia.getUbicacion());
-				
+						@Override
+						public void windowClosed(WindowEvent e) {
+							refrescarTabla();
+
+						}
+					});
+				} else {
+					JOptionPane.showMessageDialog(panelBotones, "Debe seleccionar una nota");
+
+				}
 			}
-			
+		});
+
+		JButton botonQuitar = new JButton("-");
+		panelBotones.add(botonQuitar);
+		botonQuitar.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				controller.getModelo().eliminarNota();
+				refrescarTabla();
+
+			}
+		});
+
+		JButton botonAgregar = new JButton("+");
+		panelBotones.add(botonAgregar);
+		botonAgregar.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+
+				Nota nota = controller.getModelo().nuevaNota();
+				CrearNota crearDialog = new CrearNota(nota);
+				crearDialog.setVisible(true);
+				crearDialog.addWindowListener(new VentanaSeCierraListener() {
+
+					@Override
+					public void windowClosed(WindowEvent e) {
+						refrescarTabla();
+
+					}
+				});
+			}
 		});
 	}
 
@@ -178,7 +332,99 @@ public class SeguidorDeCarreras extends JFrame {
 
 		controller.getModelo().setCarrera(carreraDummy);
 		controller.getModelo().setMateriaSeleccionada(carreraDummy.getMaterias().get(0));
-
 	}
 
+	private void refrescarTabla() {
+		notaTableModel = new NotaTableModel(controller.getModelo().getMateriaSeleccionada().getNotas());
+		tablaNotas.setModel(notaTableModel);
+		tablaNotas.revalidate();
+		tablaNotas.repaint();
+		tablaNotas.getSelectionModel().clearSelection();
+		notaTableModel.fireTableDataChanged();
+	}
+
+	class NotaTableModel extends AbstractTableModel {
+
+		/**
+		* 
+		*/
+		private static final long serialVersionUID = 850840400037656638L;
+
+		List<Nota> notasList;
+
+		String[] headerList = { "Fecha", "Descripción", "Aprobó" };
+		Class[] classes = { Date.class, String.class, String.class };
+
+		public NotaTableModel(List<Nota> list) {
+			notasList = list;
+		}
+
+		public Nota obtener(int index) {
+			try {
+				return notasList.get(index);
+			} catch (IndexOutOfBoundsException e) {
+				return null;
+			}
+
+		}
+
+		@Override
+		public int getColumnCount() {
+			return headerList.length;
+		}
+
+		@Override
+		public int getRowCount() {
+			return notasList.size();
+		}
+
+		@Override
+		public Class<?> getColumnClass(int arg0) {
+			return classes[arg0];
+		}
+
+		// this method is called to set the value of each cell
+		@Override
+		public Object getValueAt(int row, int column) {
+			Nota entity = null;
+			entity = notasList.get(row);
+			switch (column) {
+			case 0:
+				return entity.getFecha();
+			case 1:
+				return entity.getDescripcion();
+			case 2:
+				return entity.getEstaAprobada() ? "Si" : "No";
+			default:
+				return "";
+			}
+		}
+
+		// This method will be used to display the name of columns
+		public String getColumnName(int col) {
+			return headerList[col];
+		}
+
+		@Override
+		public void setValueAt(Object value, int row, int col) {
+			Nota entity = null;
+			entity = notasList.get(row);
+			switch (col) {
+			case 0:
+				entity.setFecha((Date) value);
+				break;
+			case 1:
+				entity.setDescripcion((String) value);
+				break;
+			case 2:
+				entity.setEstaAprobada((Boolean) value);
+				break;
+			default:
+				break;
+
+			}
+			fireTableCellUpdated(row, col);
+		}
+
+	}
 }
