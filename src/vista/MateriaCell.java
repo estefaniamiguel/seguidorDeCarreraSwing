@@ -1,5 +1,6 @@
 package vista;
 
+import java.awt.Color;
 import java.awt.Component;
 
 import javax.swing.JLabel;
@@ -19,6 +20,12 @@ public class MateriaCell extends JLabel implements ListCellRenderer<Materia> {
 	public Component getListCellRendererComponent(JList<? extends Materia> list, Materia value, int index,
 			boolean isSelected, boolean cellHasFocus) {
 		setText(value.getNombreMateria());
+		if (isSelected) {
+			setForeground(Color.BLUE);
+		} else {
+			setForeground(Color.BLACK);
+
+		}
 		return this;
 	}
 

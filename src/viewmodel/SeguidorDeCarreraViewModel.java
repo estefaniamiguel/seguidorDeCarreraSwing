@@ -1,5 +1,7 @@
 package viewmodel;
 
+import javax.swing.ListModel;
+
 import modelo.Carrera;
 import modelo.Materia;
 import modelo.Nota;

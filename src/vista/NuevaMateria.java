@@ -27,7 +27,7 @@ public class NuevaMateria extends JDialog {
 	 */
 	private static final long serialVersionUID = 6142653852116469223L;
 	private final JPanel contentPanel = new JPanel();
-	private JTextField textField;
+	private JTextField textFieldNombreMateria;
 
 	/**
 	 * Create the dialog.
@@ -53,18 +53,18 @@ public class NuevaMateria extends JDialog {
 				panel.add(lblNombre);
 			}
 			{
-				textField = new JTextField();
-				panel.add(textField);
-				textField.addKeyListener(new TextoCambiaListener() {
+				textFieldNombreMateria = new JTextField();
+				panel.add(textFieldNombreMateria);
+				textFieldNombreMateria.addKeyListener(new TextoCambiaListener() {
 					
 					@Override
 					public void keyReleased(KeyEvent e) {
-						modelo.getMateria().setNombreMateria(textField.getText());
+						modelo.getMateria().setNombreMateria(textFieldNombreMateria.getText());
 						
 					}
 				});
 				
-				textField.setColumns(10);
+				textFieldNombreMateria.setColumns(10);
 			}
 		}
 		{

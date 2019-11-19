@@ -15,15 +15,7 @@ import viewmodel.SeguidorDeCarreraViewModel;
 public class SeguidorController {
 	SeguidorDeCarreraViewModel modelo;
 
-	public SeguidorController() {
-		modelo = new SeguidorDeCarreraViewModel();
-	}
-
-	public SeguidorDeCarreraViewModel getModelo() {
-		return modelo;
-	}
-
-	public void setModelo(SeguidorDeCarreraViewModel modelo) {
+	public SeguidorController(SeguidorDeCarreraViewModel modelo) {
 		this.modelo = modelo;
 	}
 

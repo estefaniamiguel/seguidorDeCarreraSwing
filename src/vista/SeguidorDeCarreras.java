@@ -50,7 +50,7 @@ import javax.swing.ListSelectionModel;
 public class SeguidorDeCarreras extends JFrame {
 
 	private JPanel contentPane;
-	private SeguidorController controller;
+	private SeguidorDeCarreraViewModel modelo;
 	private JTable tablaNotas;
 	private NotaTableModel notaTableModel;
 	private JLabel lblNombreDeLaMateira;
@@ -80,8 +80,8 @@ public class SeguidorDeCarreras extends JFrame {
 	 * Create the frame.
 	 */
 	public SeguidorDeCarreras() {
-		crearController();
-
+		crearModelo();
+		setTitle("Seguidor de carrera");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -102,12 +102,13 @@ public class SeguidorDeCarreras extends JFrame {
 		panelMaterias.setLayout(new BoxLayout(panelMaterias, BoxLayout.Y_AXIS));
 
 		JLabel lblMaterias = new JLabel("Materias");
+		lblMaterias.setHorizontalAlignment(SwingConstants.CENTER);
 		panelMaterias.add(lblMaterias);
 
 		JList<Materia> listaDeMaterias = new JList<Materia>();
 		listaDeMaterias.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		listaDeMaterias.setCellRenderer(new MateriaCell());
-		listaDeMaterias.setModel(controller.getMaterias());
+		listaDeMaterias.setModel(new SeguidorController(modelo).getMaterias());
 		panelMaterias.add(listaDeMaterias);
 
 		JButton botonNuevaMateria = new JButton("Nueva materia");
@@ -115,13 +116,13 @@ public class SeguidorDeCarreras extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				NuevaMateria ventana = new NuevaMateria(controller.getModelo().getCarrera());
+				NuevaMateria ventana = new NuevaMateria(modelo.getCarrera());
 				ventana.setVisible(true);
 				ventana.addWindowListener(new VentanaSeCierraListener() {
 
 					@Override
 					public void windowClosed(WindowEvent e) {
-						listaDeMaterias.setModel(controller.getMaterias());
+						listaDeMaterias.setModel(new SeguidorController(modelo).getMaterias());
 
 					}
 				});
@@ -144,7 +145,7 @@ public class SeguidorDeCarreras extends JFrame {
 			}
 
 			private void seSelecciono(Materia materia) {
-				controller.getModelo().setMateriaSeleccionada(materia);
+				modelo.setMateriaSeleccionada(materia);
 				lblNombreDeLaMateira.setText(materia.getNombreMateria());
 				checkBoxAprobo.setSelected(materia.getEstaAprobada());
 				if (materia.getAnioCursada() != null) {
@@ -152,7 +153,7 @@ public class SeguidorDeCarreras extends JFrame {
 				}
 				textFieldProfesor.setText(materia.getProfesor());
 				comboBoxUbicacion.setSelectedItem(materia.getUbicacion());
-				refrescarTabla();
+				refrescarTablaDeNotas();
 			}
 
 		});
@@ -180,7 +181,7 @@ public class SeguidorDeCarreras extends JFrame {
 
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				controller.getModelo().getMateriaSeleccionada().setEstaAprobada(checkBoxAprobo.isSelected());
+				modelo.getMateriaSeleccionada().setEstaAprobada(checkBoxAprobo.isSelected());
 
 			}
 
@@ -196,7 +197,7 @@ public class SeguidorDeCarreras extends JFrame {
 
 			@Override
 			public void keyReleased(KeyEvent e) {
-				controller.getModelo().getMateriaSeleccionada()
+				modelo.getMateriaSeleccionada()
 						.setAnioCursada(Integer.valueOf(textFieldAnio.getText()));
 
 			}
@@ -212,7 +213,7 @@ public class SeguidorDeCarreras extends JFrame {
 
 			@Override
 			public void keyReleased(KeyEvent e) {
-				controller.getModelo().getMateriaSeleccionada().setProfesor(textFieldProfesor.getText());
+				modelo.getMateriaSeleccionada().setProfesor(textFieldProfesor.getText());
 
 			}
 		});
@@ -222,13 +223,13 @@ public class SeguidorDeCarreras extends JFrame {
 
 		comboBoxUbicacion = new JComboBox<Ubicacion>();
 		comboBoxUbicacion
-				.setModel(new DefaultComboBoxModel<Ubicacion>(controller.getModelo().getUbicacionesPosibles()));
+				.setModel(new DefaultComboBoxModel<Ubicacion>(modelo.getUbicacionesPosibles()));
 		panelMateria.add(comboBoxUbicacion);
 		comboBoxUbicacion.addActionListener(new ActionListener() {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				controller.getModelo().getMateriaSeleccionada()
+				modelo.getMateriaSeleccionada()
 						.setUbicacion((Ubicacion) comboBoxUbicacion.getSelectedItem());
 
 			}
@@ -247,14 +248,14 @@ public class SeguidorDeCarreras extends JFrame {
 		tablaNotas.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
 			public void valueChanged(ListSelectionEvent event) {
 				Nota nota = notaTableModel.obtener(tablaNotas.convertRowIndexToModel(tablaNotas.getSelectedRow()));
-				controller.getModelo().setNotaSeleccionada(nota);
+				modelo.setNotaSeleccionada(nota);
 			}
 		});
 
 		crearBotonesNota(panel);
 
-		if (controller.getModelo().getMateriaSeleccionada() != null) {
-			notaTableModel = new NotaTableModel(controller.getModelo().getMateriaSeleccionada().getNotas());
+		if (modelo.getMateriaSeleccionada() != null) {
+			notaTableModel = new NotaTableModel(modelo.getMateriaSeleccionada().getNotas());
 			tablaNotas.setModel(notaTableModel);
 		}
 	}
@@ -269,7 +270,7 @@ public class SeguidorDeCarreras extends JFrame {
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				Nota nota = controller.getModelo().getNotaSeleccionada();
+				Nota nota = modelo.getNotaSeleccionada();
 				if (nota != null) {
 					EditarNota editarDialog = new EditarNota(nota);
 					editarDialog.setVisible(true);
@@ -277,7 +278,7 @@ public class SeguidorDeCarreras extends JFrame {
 
 						@Override
 						public void windowClosed(WindowEvent e) {
-							refrescarTabla();
+							refrescarTablaDeNotas();
 
 						}
 					});
@@ -295,8 +296,8 @@ public class SeguidorDeCarreras extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 
-				controller.getModelo().eliminarNota();
-				refrescarTabla();
+				modelo.eliminarNota();
+				refrescarTablaDeNotas();
 
 			}
 		});
@@ -308,14 +309,14 @@ public class SeguidorDeCarreras extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 
-				Nota nota = controller.getModelo().nuevaNota();
+				Nota nota = modelo.nuevaNota();
 				CrearNota crearDialog = new CrearNota(nota);
 				crearDialog.setVisible(true);
 				crearDialog.addWindowListener(new VentanaSeCierraListener() {
 
 					@Override
 					public void windowClosed(WindowEvent e) {
-						refrescarTabla();
+						refrescarTablaDeNotas();
 
 					}
 				});
@@ -323,19 +324,19 @@ public class SeguidorDeCarreras extends JFrame {
 		});
 	}
 
-	private void crearController() {
-		controller = new SeguidorController();
+	private void crearModelo() {
+		modelo = new SeguidorDeCarreraViewModel();
 
 		DataDummy data = new DataDummy();
 
 		Carrera carreraDummy = data.crearCarreraDummy();
 
-		controller.getModelo().setCarrera(carreraDummy);
-		controller.getModelo().setMateriaSeleccionada(carreraDummy.getMaterias().get(0));
+		modelo.setCarrera(carreraDummy);
+		modelo.setMateriaSeleccionada(carreraDummy.getMaterias().get(0));
 	}
 
-	private void refrescarTabla() {
-		notaTableModel = new NotaTableModel(controller.getModelo().getMateriaSeleccionada().getNotas());
+	private void refrescarTablaDeNotas() {
+		notaTableModel = new NotaTableModel(modelo.getMateriaSeleccionada().getNotas());
 		tablaNotas.setModel(notaTableModel);
 		tablaNotas.revalidate();
 		tablaNotas.repaint();
@@ -379,22 +380,21 @@ public class SeguidorDeCarreras extends JFrame {
 		}
 
 		@Override
-		public Class<?> getColumnClass(int arg0) {
-			return classes[arg0];
+		public Class<?> getColumnClass(int index) {
+			return classes[index];
 		}
 
 		// this method is called to set the value of each cell
 		@Override
 		public Object getValueAt(int row, int column) {
-			Nota entity = null;
-			entity = notasList.get(row);
+			Nota nota = notasList.get(row);
 			switch (column) {
 			case 0:
-				return entity.getFecha();
+				return nota.getFecha();
 			case 1:
-				return entity.getDescripcion();
+				return nota.getDescripcion();
 			case 2:
-				return entity.getEstaAprobada() ? "Si" : "No";
+				return nota.getEstaAprobada() ? "Si" : "No";
 			default:
 				return "";
 			}
@@ -407,8 +407,7 @@ public class SeguidorDeCarreras extends JFrame {
 
 		@Override
 		public void setValueAt(Object value, int row, int col) {
-			Nota entity = null;
-			entity = notasList.get(row);
+			Nota entity = notasList.get(row);
 			switch (col) {
 			case 0:
 				entity.setFecha((Date) value);
